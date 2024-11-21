@@ -1,8 +1,11 @@
 package com.examen.pulseya;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -86,6 +89,8 @@ public class LoginActivity extends AppCompatActivity {
 
                                 dbHelper.guardarUsuario(nombre, correo, contraseña, tipoDeCuenta);
 
+                                storeUserId(UsuarioID);
+
                                 Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
                                 intent.putExtra("id", UsuarioID);
                                 startActivity(intent);
@@ -100,5 +105,17 @@ public class LoginActivity extends AppCompatActivity {
                 }).addOnFailureListener(e -> {
                     Toast.makeText(this, "Error al iniciar sesión: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    public void storeUserId(String userId) {
+        SharedPreferences sharedPreferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("userId", userId);  // Store the user ID
+        editor.apply();
+    }
+
+    public String getUserId() {
+        SharedPreferences sharedPreferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        return sharedPreferences.getString("userId", null);  // Return null if no userId is found
     }
 }

@@ -2,7 +2,9 @@ package com.examen.pulseya;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -14,7 +16,6 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -22,90 +23,85 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.examen.pulseya.helper.GeocordHelper;
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class PublicarEventoActivity extends AppCompatActivity {
     private EditText editTextNombreEvento, editTextFechaEvento, editTextHoraInicioEvento, editTextDescripcion, editTextDireccion;
-    private RadioGroup radioGroupTipoEvento;
-    private Button btnPublicarEvento, btnSubirImagen;
-    private ImageView imageViewFlyer;
+    private RadioGroup grupoTipoEvento;
+    private Button botonPublicarEvento, botonSubirImagen;
+    private ImageView imagenFlyer;
     private Uri flyerUri;
     private FirebaseFirestore db;
     private StorageReference storageRef;
-    private String UsuarioID, placeId;
+    private String usuarioID, lugarID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_publicar_evento);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
 
-        // Configuracion del Cloud y Storage
         db = FirebaseFirestore.getInstance();
         storageRef = FirebaseStorage.getInstance().getReference();
 
+        // Inicialización de los elementos de la interfaz
         editTextNombreEvento = findViewById(R.id.editTextNombreEvento);
         editTextFechaEvento = findViewById(R.id.editTextFechaEvento);
         editTextHoraInicioEvento = findViewById(R.id.editTextHoraInicioEvento);
         editTextDescripcion = findViewById(R.id.editTextDescripcion);
         editTextDireccion = findViewById(R.id.editTextDireccion);
-        radioGroupTipoEvento = findViewById(R.id.radioGroupTipoEvento);
-        btnPublicarEvento = findViewById(R.id.btnPublicarEvento);
-        btnSubirImagen = findViewById(R.id.btnSubirImagen);
-        imageViewFlyer = findViewById(R.id.imageViewFlyer);
+        grupoTipoEvento = findViewById(R.id.radioGroupTipoEvento);
+        botonPublicarEvento = findViewById(R.id.btnPublicarEvento);
+        botonSubirImagen = findViewById(R.id.btnSubirImagen);
+        imagenFlyer = findViewById(R.id.imageViewFlyer);
 
-        // Conseguir id del usuario
-        UsuarioID = getIntent().getStringExtra(UsuarioID);
-
-        if (UsuarioID == null) {
-            Log.e("PublicarEventoActivity", "UsuarioID esta nulo");
-        } else {
-            Log.d("PublicarEventoActivity", "UsuarioID: " + UsuarioID);
+        usuarioID = obtenerUsuarioID();
+        if (usuarioID == null) {
+            Log.e("PublicarEventoActivity", "UsuarioID es null");
         }
 
-        // Selecionar fecha y hora
-        editTextFechaEvento.setOnClickListener(v -> showDatePickerDialog());
-        editTextHoraInicioEvento.setOnClickListener(v -> showTimePickerDialog());
-
-        // Subir imagen
-        btnSubirImagen.setOnClickListener(v -> elegirImagen());
-
-        // Publicar evento
-        btnPublicarEvento.setOnClickListener(v -> publicarEvento());
+        // Configurar los selectores de fecha, hora e imagen
+        editTextFechaEvento.setOnClickListener(v -> mostrarSelectorFecha());
+        editTextHoraInicioEvento.setOnClickListener(v -> mostrarSelectorHora());
+        botonSubirImagen.setOnClickListener(v -> seleccionarImagen());
+        botonPublicarEvento.setOnClickListener(v -> publicarEvento());
     }
 
-    private void showDatePickerDialog() {
-        Calendar calendar = Calendar.getInstance();
-        DatePickerDialog datePickerDialog = new DatePickerDialog(this,
-                (view, year, month, dayOfMonth) -> editTextFechaEvento.setText(year + "-" + (month + 1) + "-" + dayOfMonth),
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH));
-        datePickerDialog.show();
+    private String obtenerUsuarioID() {
+        SharedPreferences sharedPreferences = getSharedPreferences("UserPrefs", Context.MODE_PRIVATE);
+        return sharedPreferences.getString("userId", null);
     }
 
-    private void showTimePickerDialog() {
-        Calendar calendar = Calendar.getInstance();
-        TimePickerDialog timePickerDialog = new TimePickerDialog(this,
-                (view, hourOfDay, minute) -> editTextHoraInicioEvento.setText(hourOfDay + ":" + minute),
-                calendar.get(Calendar.HOUR_OF_DAY),
-                calendar.get(Calendar.MINUTE),
+    private void mostrarSelectorFecha() {
+        Calendar calendario = Calendar.getInstance();
+        DatePickerDialog selectorFecha = new DatePickerDialog(this,
+                (view, year, month, dayOfMonth) -> editTextFechaEvento.setText(String.format("%d-%02d-%02d", year, month + 1, dayOfMonth)),
+                calendario.get(Calendar.YEAR),
+                calendario.get(Calendar.MONTH),
+                calendario.get(Calendar.DAY_OF_MONTH));
+        selectorFecha.show();
+    }
+
+    private void mostrarSelectorHora() {
+        Calendar calendario = Calendar.getInstance();
+        TimePickerDialog selectorHora = new TimePickerDialog(this,
+                (view, hourOfDay, minute) -> editTextHoraInicioEvento.setText(String.format("%02d:%02d", hourOfDay, minute)),
+                calendario.get(Calendar.HOUR_OF_DAY),
+                calendario.get(Calendar.MINUTE),
                 true);
-        timePickerDialog.show();
+        selectorHora.show();
     }
 
-    private void elegirImagen() {
+    private void seleccionarImagen() {
         Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         startActivityForResult(intent, 100);
     }
@@ -115,7 +111,7 @@ public class PublicarEventoActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == 100 && resultCode == RESULT_OK && data != null) {
             flyerUri = data.getData();
-            imageViewFlyer.setImageURI(flyerUri);
+            imagenFlyer.setImageURI(flyerUri);
         }
     }
 
@@ -126,69 +122,111 @@ public class PublicarEventoActivity extends AppCompatActivity {
         String descripcion = editTextDescripcion.getText().toString().trim();
         String direccion = editTextDireccion.getText().toString().trim();
 
-        if (TextUtils.isEmpty(nombreEvento) || TextUtils.isEmpty(fechaEvento) || TextUtils.isEmpty(horaInicioEvento) || TextUtils.isEmpty(descripcion) || TextUtils.isEmpty(direccion)) {
+        if (TextUtils.isEmpty(nombreEvento) || TextUtils.isEmpty(fechaEvento) || TextUtils.isEmpty(horaInicioEvento)
+                || TextUtils.isEmpty(descripcion) || TextUtils.isEmpty(direccion)) {
             Toast.makeText(this, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        GeocordHelper.getCoordenadasAtravesDireccion(direccion, "@string/google_maps_key", new GeocordHelper.GeocodeCallback() {
+        if (flyerUri == null) {
+            Toast.makeText(this, "Por favor, selecciona una imagen para el flyer", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        GeocordHelper.getCoordenadasAtravesDireccion(direccion, getString(R.string.google_maps_key), new GeocordHelper.GeocodeCallback() {
             @Override
             public void onCoordinatesFetched(String latitude, String longitude) {
-                guardarLugarAFirestore(direccion, latitude, longitude);
+                guardarLugarEnFirestore(direccion, latitude, longitude);
             }
         });
     }
 
-    private void guardarLugarAFirestore(String direccion, String latitude, String longitude) {
-        Map<String, Object> placeData = new HashMap<>();
-        placeData.put("Direccion", direccion);
-        placeData.put("Latitud", Double.parseDouble(latitude));
-        placeData.put("Longitud", Double.parseDouble(longitude));
+    private void guardarLugarEnFirestore(String direccion, String latitud, String longitud) {
+        Map<String, Object> datosLugar = new HashMap<>();
+        datosLugar.put("Direccion", direccion);
+        datosLugar.put("Latitud", Double.parseDouble(latitud));
+        datosLugar.put("Longitud", Double.parseDouble(longitud));
 
-        db.collection("Lugares").add(placeData)
+        db.collection("Lugar").add(datosLugar)
                 .addOnSuccessListener(documentReference -> {
-                    placeId = documentReference.getId();
-                    guardarEventoAFirestore();
+                    lugarID = documentReference.getId();
+                    guardarEventoEnFirestore();
                 })
-                .addOnFailureListener(e -> Toast.makeText(PublicarEventoActivity.this, "Error guardando lugar: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                .addOnFailureListener(e -> Toast.makeText(PublicarEventoActivity.this, "Error al guardar el lugar: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    private void guardarEventoAFirestore() {
+    private void guardarEventoEnFirestore() {
         String nombreEvento = editTextNombreEvento.getText().toString().trim();
+        String descripcion = editTextDescripcion.getText().toString().trim();
         String fechaEvento = editTextFechaEvento.getText().toString().trim();
         String horaInicioEvento = editTextHoraInicioEvento.getText().toString().trim();
-        String descripcion = editTextDescripcion.getText().toString().trim();
 
-        int itemSeleccionado = radioGroupTipoEvento.getCheckedRadioButtonId();
-        RadioButton selectedRadioButton = findViewById(itemSeleccionado);
-        String tipoEvento = selectedRadioButton != null ? selectedRadioButton.getText().toString() : "";
+        Timestamp fechaHoraEvento = convertirAFechaHora(fechaEvento, horaInicioEvento);
+        if (fechaHoraEvento == null) {
+            Toast.makeText(this, "Error al procesar la fecha y hora del evento", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int tipoSeleccionadoId = grupoTipoEvento.getCheckedRadioButtonId();
+        RadioButton radioSeleccionado = findViewById(tipoSeleccionadoId);
+        String tipoEvento = radioSeleccionado != null ? radioSeleccionado.getText().toString() : "";
+
+        DocumentReference referenciaLugar = db.collection("Lugar").document(lugarID);
+        DocumentReference referenciaUsuario = db.collection("Usuarios").document(usuarioID);
 
         Map<String, Object> evento = new HashMap<>();
         evento.put("Nombre_Evento", nombreEvento);
-        evento.put("Fecha_Evento", Timestamp.now());
-        evento.put("Hora_Inicio", Timestamp.now());
+        evento.put("Fecha_Evento", fechaHoraEvento);
+        evento.put("Hora_Inicio", fechaHoraEvento);
         evento.put("Descripcion", descripcion);
-        evento.put("FlyerUrl", "");
-        evento.put("LugarID", placeId);
+        evento.put("FlyerUrl", ""); // Inicialmente vacío, se actualizará después
+        evento.put("LugarID", referenciaLugar);
         evento.put("Tipo_Evento", tipoEvento);
-        evento.put("UsuarioID", UsuarioID);
+        evento.put("UsuarioID", referenciaUsuario);
 
         db.collection("Evento").add(evento)
                 .addOnSuccessListener(documentReference -> {
                     Toast.makeText(PublicarEventoActivity.this, "Evento publicado con éxito", Toast.LENGTH_SHORT).show();
-                    subitFlyerImagen(documentReference.getId());
+                    uploadFlyerImage(documentReference.getId()); // Subir el flyer y actualizar el evento
                 })
                 .addOnFailureListener(e -> Toast.makeText(PublicarEventoActivity.this, "Error publicando evento: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-    private void subitFlyerImagen(String eventoId) {
+    private Timestamp convertirAFechaHora(String fecha, String hora) {
+        try {
+            String fechaHoraStr = fecha + " " + hora;
+            SimpleDateFormat formatoFechaHora = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+            formatoFechaHora.setTimeZone(Calendar.getInstance().getTimeZone()); // Usa la zona horaria local
+            Date fechaHora = formatoFechaHora.parse(fechaHoraStr);
+            return new Timestamp(fechaHora);
+        } catch (Exception e) {
+            Log.e("PublicarEventoActivity", "Error al convertir fecha y hora", e);
+            return null;
+        }
+    }
+
+    private void uploadFlyerImage(String eventId) {
         if (flyerUri != null) {
-            StorageReference flyerRef = storageRef.child("flyers/" + eventoId + ".jpg");
-            flyerRef.putFile(flyerUri).addOnSuccessListener(taskSnapshot -> flyerRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        Map<String, Object> flyerUpdate = new HashMap<>();
-                        flyerUpdate.put("FlyerUrl", uri.toString());
-                        db.collection("Evento").document(eventoId).update(flyerUpdate).addOnSuccessListener(aVoid -> Toast.makeText(PublicarEventoActivity.this, "Flyer subido", Toast.LENGTH_SHORT).show());
-                    })).addOnFailureListener(e -> Toast.makeText(PublicarEventoActivity.this, "ERROR subiendo flyer: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            StorageReference flyerRef = storageRef.child("flyers/" + eventId + ".jpg");
+            flyerRef.putFile(flyerUri)
+                    .addOnSuccessListener(taskSnapshot -> flyerRef.getDownloadUrl()
+                            .addOnSuccessListener(uri -> {
+                                Map<String, Object> flyerUpdate = new HashMap<>();
+                                flyerUpdate.put("FlyerUrl", uri.toString());
+                                db.collection("Evento").document(eventId)
+                                        .update(flyerUpdate)
+                                        .addOnSuccessListener(aVoid -> {
+                                            Toast.makeText(PublicarEventoActivity.this, "Flyer subido y URL actualizado", Toast.LENGTH_SHORT).show();
+                                            Intent intent = new Intent(PublicarEventoActivity.this, HomeActivity.class);
+                                            startActivity(intent);
+                                            finish();
+                                        })
+                                        .addOnFailureListener(e -> Log.e("PublicarEventoActivity", "Error actualizando URL del flyer: " + e.getMessage()));
+                            })
+                            .addOnFailureListener(e -> Log.e("PublicarEventoActivity", "Error obteniendo URL del flyer: " + e.getMessage())))
+                    .addOnFailureListener(e -> Log.e("PublicarEventoActivity", "Error subiendo flyer: " + e.getMessage()));
+        } else {
+            Log.e("PublicarEventoActivity", "Flyer URI es null. No se puede subir la imagen.");
         }
     }
 }

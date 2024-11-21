@@ -113,15 +113,18 @@ public class MapaFragment extends Fragment implements OnMapReadyCallback {
                         String eventoName = evento.getString("Nombre_Evento");
                         String eventDescripcion = evento.getString("Descripcion");
 
-                        // manejo de lugares (a la cual hace referencia)
-                        DocumentReference lugarRef = evento.getDocumentReference("LugarID");
+                        Object lugarIdObject = evento.get("LugarID");
 
-                        if (lugarRef != null) {
+                        if (lugarIdObject instanceof DocumentReference) {
+                            DocumentReference lugarRef = (DocumentReference) lugarIdObject;
                             String lugarID = lugarRef.getId();
                             Log.d(TAG, "Lugar ID: " + lugarID);
                             obtenerLugar(eventoName, eventDescripcion, lugarID);
+                        } else if (lugarIdObject instanceof String) {
+                            // Si LugarID es un String, puedes manejarlo de forma diferente (por ejemplo, logs o ignorar).
+                            Log.w(TAG, "LugarID no es un DocumentReference, es un String: " + lugarIdObject);
                         } else {
-                            Log.d(TAG, "Evento no tiene LugarID");
+                            Log.w(TAG, "LugarID no es válido o está ausente en el evento.");
                         }
                     }
                 }
@@ -129,7 +132,6 @@ public class MapaFragment extends Fragment implements OnMapReadyCallback {
                 Log.e(TAG, "Error obteniendo eventos: " + task.getException());
             }
         });
-
     }
 
     private void obtenerLugar(String eventoName, String eventDescripcion, String lugarID) {
@@ -137,41 +139,55 @@ public class MapaFragment extends Fragment implements OnMapReadyCallback {
             if (task.isSuccessful()) {
                 DocumentSnapshot placeDoc = task.getResult();
                 if (placeDoc != null && placeDoc.exists()) {
+                    // Try to get latitude and longitude
                     double latitude = placeDoc.contains("Latitud") ? placeDoc.getDouble("Latitud") : 0.0;
                     double longitude = placeDoc.contains("Longitud") ? placeDoc.getDouble("Longitud") : 0.0;
                     String address = placeDoc.getString("Direccion");
 
-                    if (latitude == 0.0 && longitude == 0.0 && address != null) {
-                        // Usar Geocoder si cordenadas no estan disponible
-                        try {
-                            List<Address> addresses = geocoder.getFromLocationName(address, 1);
-                            if (addresses != null && !addresses.isEmpty()) {
-                                Address location = addresses.get(0);
-                                latitude = location.getLatitude();
-                                longitude = location.getLongitude();
-                            } else {
-                                Log.w(TAG, "No coordinates found for address: " + address);
+                    if (latitude == 0.0 && longitude == 0.0 && address == null) {
+                        Log.w(TAG, "LugarID: " + lugarID + " no tiene coordenadas ni dirección disponible.");
+                    } else if (latitude == 0.0 && longitude == 0.0 && address != null) {
+                        Log.w(TAG, "LugarID: " + lugarID + " tiene dirección pero no coordenadas: " + address);
+                    }
+
+                    if (latitude == 0.0 && longitude == 0.0) {
+                        // Use Geocoder if coordinates are missing and address is available
+                        if (address != null && !address.isEmpty()) {
+                            try {
+                                List<Address> addresses = geocoder.getFromLocationName(address, 1);
+                                if (addresses != null && !addresses.isEmpty()) {
+                                    Address location = addresses.get(0);
+                                    latitude = location.getLatitude();
+                                    longitude = location.getLongitude();
+                                } else {
+                                    Log.w(TAG, "No se encontraron coordenadas para la dirección: " + address);
+                                }
+                            } catch (IOException e) {
+                                Log.e(TAG, "Error con Geocoder: " + e.getMessage());
                             }
-                        } catch (IOException e) {
-                            Log.e(TAG, "Error with Geocoder: " + e.getMessage());
+                        } else {
+                            Log.w(TAG, "LugarID: " + lugarID + " no tiene coordenadas ni dirección.");
                         }
                     }
 
                     if (latitude != 0.0 && longitude != 0.0) {
-                        // agregar el marcador
+                        // Add the marker to the map
                         LatLng placeLocation = new LatLng(latitude, longitude);
-                        MarkerOptions markerOptions = new MarkerOptions().position(placeLocation).title(eventoName).snippet(eventDescripcion);
+                        MarkerOptions markerOptions = new MarkerOptions()
+                                .position(placeLocation)
+                                .title(eventoName)
+                                .snippet(eventDescripcion);
 
                         mMap.addMarker(markerOptions);
-                        Log.d(TAG, "marca agregado para evento: " + eventoName + " al ubicacion: " + placeLocation);
+                        Log.d(TAG, "Marcador agregado para evento: " + eventoName + " en ubicación: " + placeLocation);
                     } else {
-                        Log.w(TAG, "cordenadas invalido para lugarID: " + lugarID);
+                        Log.w(TAG, "Coordenadas inválidas para LugarID: " + lugarID);
                     }
                 } else {
-                    Log.w(TAG, "lugar no encontrado: " + lugarID);
+                    Log.w(TAG, "Lugar no encontrado para LugarID: " + lugarID);
                 }
             } else {
-                Log.e(TAG, "Error obteniendo data lugar: ", task.getException());
+                Log.e(TAG, "Error obteniendo datos del lugar: ", task.getException());
             }
         });
     }

@@ -26,7 +26,7 @@
     <string name="descripcion_evento">Descripcion Evento</string>
     <string name="titulo_evento">Titulo Evento</string>
     <string name="fecha">Fecha</string>
-    <string name="hora_inicio">Hora Inicio</string>
+    <string name="hora_inicio">Hora Inicio:</string>
     <string name="notificar">Notificar</string>
     <string name="ver_mapa">Ver Mapa</string>
     <string name="usuario">usuario</string>
@@ -51,5 +51,6 @@
     <string name="festival">Festival</string>
     <string name="plus">+</string>
     <string name="insertar_imagen">Insertar Imagen</string>
+    <string name="concierto">Concierto</string>
 
 </resources>

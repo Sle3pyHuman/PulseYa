@@ -1,21 +1,21 @@
 package com.examen.pulseya;
 
-import com.google.firebase.Timestamp;
-
 public class Evento {
     private String titulo;
     private String descripcion;
     private String fecha;
     private String horaInicio;
     private String imageUrl;
+    private String creadorId;
     private boolean isExpanded;  // Flag to check if description is expanded
 
-    public Evento(String titulo, String descripcion, String fecha, String horaInicio, String imageUrl) {
+    public Evento(String titulo, String descripcion, String fecha, String horaInicio, String imageUrl, String creador) {
         this.titulo = titulo;
         this.descripcion = descripcion;
         this.fecha = fecha;
         this.horaInicio = horaInicio;
         this.imageUrl = imageUrl;
+        this.creadorId = creador;
         this.isExpanded = false;  // Initially, description is not expanded
     }
 
@@ -35,7 +35,7 @@ public class Evento {
         return horaInicio;
     }
 
-    public String getImageUrl() {
+    public String getImagenUrl() {
         return imageUrl;
     }
 
@@ -45,5 +45,9 @@ public class Evento {
 
     public void setExpanded(boolean expanded) {
         isExpanded = expanded;
+    }
+
+    public String getCreadorId() {
+        return creadorId;
     }
 }

@@ -28,6 +28,8 @@ public class HomeActivity extends AppCompatActivity {
     private BaseDatosHelper dbHelper;
     private String usuarioRol;
 
+    private String UsuarioID;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,6 +40,13 @@ public class HomeActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        UsuarioID = getIntent().getStringExtra("UsuarioID");
+        if (UsuarioID == null) {
+            Log.e("PublicarEventoActivity", "UsuarioID is null");
+        } else {
+            Log.d("PublicarEventoActivity", "UsuarioID: " + UsuarioID);
+        }
 
         // Initialize NavigationView after the content view is set
         drawerLayout = findViewById(R.id.drawer_layout);

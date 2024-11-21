@@ -14,6 +14,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
@@ -27,18 +28,20 @@ public class HomeFragment extends Fragment {
     private RecyclerView recyclerView;
     private EventoAdapter eventoAdapter;
     private List<Evento> eventoList;
+    private FirebaseFirestore db;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
-        // Initialize RecyclerView
         recyclerView = view.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         eventoList = new ArrayList<>();
-        eventoAdapter = new EventoAdapter(getContext(), eventoList); // Pass context here
+        eventoAdapter = new EventoAdapter(getContext(), eventoList);
         recyclerView.setAdapter(eventoAdapter);
+
+        db = FirebaseFirestore.getInstance();
 
         // obtener eventos
         obtenerEventos();
@@ -47,40 +50,66 @@ public class HomeFragment extends Fragment {
     }
 
     private void obtenerEventos() {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        Log.d("HomeFragment", "Fetching events...");
 
         SimpleDateFormat fechaFormat = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
         SimpleDateFormat tiempoFormat = new SimpleDateFormat("HH:mm", Locale.getDefault());
 
         db.collection("Evento").get().addOnSuccessListener(queryDocumentSnapshots -> {
-                    eventoList.clear();
-                    for (DocumentSnapshot doc : queryDocumentSnapshots) {
+            Log.d("HomeFragment", "Events fetched successfully");
+            eventoList.clear();
+            for (DocumentSnapshot doc : queryDocumentSnapshots) {
+                String titulo = doc.getString("Nombre_Evento");
+                String descripcion = doc.getString("Descripcion");
 
-                        String titulo = doc.getString("Nombre_Evento");
-                        String descripcion = doc.getString("Descripcion");
+                // Ensure usuarioID is a reference, if not, handle as a string ID (just for debugging purposes).
+                DocumentReference usuarioRef = doc.getDocumentReference("UsuarioID");
 
-                        Timestamp fechaTimestamp = doc.getTimestamp("Fecha_Evento");
-                        String fecha = fechaTimestamp != null ? fechaFormat.format(fechaTimestamp.toDate()) : "Fecha no disponible";
+                if (usuarioRef != null) {
+                    Log.d("HomeFragment", "usuarioID as DocumentReference: " + usuarioRef.getPath());
 
-                        Timestamp horaInicioTimestamp = doc.getTimestamp("Hora_Inicio");
-                        String horaInicio = horaInicioTimestamp != null ? tiempoFormat.format(horaInicioTimestamp.toDate()) : "Hora no disponible";
+                    // Fix: Now we access the "Usuarios" collection instead of "Usuario"
+                    usuarioRef.get().addOnSuccessListener(userDoc -> {
+                        if (userDoc.exists()) {
+                            String usuarioNombre = userDoc.getString("Nombre"); // Get the 'Nombre' field from the 'Usuarios' document
+                            Log.d("HomeFragment", "User name fetched: " + usuarioNombre);
 
-                        // manejo de URL de Firebase Storage
-                        String storagePath = doc.getString("FlyerUrl"); // Path in Firebase Storage
-                        if (storagePath != null) {
-                            FirebaseStorage.getInstance().getReferenceFromUrl(storagePath).getDownloadUrl().addOnSuccessListener(uri -> {
-                                        // agrega evento con la URL resuelta
-                                        eventoList.add(new Evento(titulo, descripcion, fecha, horaInicio, uri.toString()));
-                                        eventoAdapter.notifyDataSetChanged();
-                                    })
-                                    .addOnFailureListener(e -> Log.e("HomeFragment", "Error a obtener imgagen URL", e));
+                            // Event date and time
+                            Timestamp fechaTimestamp = doc.getTimestamp("Fecha_Evento");
+                            String fecha = fechaTimestamp != null ? fechaFormat.format(fechaTimestamp.toDate()) : "Fecha no disponible";
+                            Timestamp horaInicioTimestamp = doc.getTimestamp("Hora_Inicio");
+                            String horaInicio = horaInicioTimestamp != null ? tiempoFormat.format(horaInicioTimestamp.toDate()) : "Hora no disponible";
+
+                            // Event flyer URL (from Firebase Storage)
+                            String storagePath = doc.getString("FlyerUrl");
+                            if (storagePath != null) {
+                                FirebaseStorage.getInstance().getReferenceFromUrl(storagePath).getDownloadUrl().addOnSuccessListener(uri -> {
+                                    Log.d("HomeFragment", "Flyer URL fetched successfully");
+
+                                    // Add the event with the flyer URL and user name
+                                    eventoList.add(new Evento(titulo, descripcion, fecha, horaInicio, uri.toString(), usuarioNombre));
+                                    eventoAdapter.notifyDataSetChanged();
+                                }).addOnFailureListener(e -> Log.e("HomeFragment", "Error obtaining flyer image URL: " + e.getMessage()));
+                            } else {
+                                Log.d("HomeFragment", "No flyer URL found for event");
+
+                                // Add event without flyer image
+                                eventoList.add(new Evento(titulo, descripcion, fecha, horaInicio, null, usuarioNombre));
+                                eventoAdapter.notifyDataSetChanged();
+                            }
                         } else {
-                            // Add the event without an image
-                            eventoList.add(new Evento(titulo, descripcion, fecha, horaInicio, null));
-                            eventoAdapter.notifyDataSetChanged();
+                            Log.e("HomeFragment", "Usuario document does not exist");
                         }
-                    }
-                })
-                .addOnFailureListener(e -> Log.e("HomeFragment", "Error obteniendo eventos", e));
+                    }).addOnFailureListener(e -> {
+                        Log.e("HomeFragment", "Error fetching user name from reference: " + e.getMessage());
+                    });
+                } else {
+                    Log.e("HomeFragment", "Usuario reference is null");
+                }
+            }
+        }).addOnFailureListener(e -> {
+            Log.e("HomeFragment", "Error fetching events: " + e.getMessage());
+        });
     }
+
 }

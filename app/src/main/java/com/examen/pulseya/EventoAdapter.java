@@ -33,6 +33,7 @@ public class EventoAdapter extends RecyclerView.Adapter<EventoAdapter.EventViewH
     public void onBindViewHolder(@NonNull EventViewHolder holder, int position) {
         Evento evento = eventoList.get(position);
 
+        holder.textViewNombreUsuario.setText(evento.getCreadorId());
         holder.textViewTitulo.setText(evento.getTitulo());
         holder.textViewFecha.setText(evento.getFecha());
         holder.textViewHora.setText(evento.getHoraInicio());
@@ -55,8 +56,8 @@ public class EventoAdapter extends RecyclerView.Adapter<EventoAdapter.EventViewH
 
 
         // cargar imagen usando Glide
-        if (evento.getImagenURL() != null && !evento.getImagenURL().isEmpty()) {
-            Glide.with(context).load(evento.getImagenURL()).into(holder.imageViewFlyer);
+        if (evento.getImagenUrl() != null && !evento.getImagenUrl().isEmpty()) {
+            Glide.with(context).load(evento.getImagenUrl()).into(holder.imageViewFlyer);
         } else {
             holder.imageViewFlyer.setImageResource(R.drawable.placeholder_img);
         }
@@ -68,11 +69,12 @@ public class EventoAdapter extends RecyclerView.Adapter<EventoAdapter.EventViewH
     }
 
     public static class EventViewHolder extends RecyclerView.ViewHolder {
-        TextView textViewTitulo, textViewDescripcion, textViewFecha, textViewHora;
+        TextView textViewNombreUsuario, textViewTitulo, textViewDescripcion, textViewFecha, textViewHora;
         ImageView imageViewFlyer;
 
         public EventViewHolder(@NonNull View itemView) {
             super(itemView);
+            textViewNombreUsuario = itemView.findViewById(R.id.nombre_usuario);
             textViewTitulo = itemView.findViewById(R.id.titulo_evento);
             textViewDescripcion = itemView.findViewById(R.id.descripcion_evento);
             textViewFecha = itemView.findViewById(R.id.fecha_evento);
