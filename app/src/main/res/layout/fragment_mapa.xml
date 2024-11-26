@@ -1,0 +1,27 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Fragmento de Google Maps -->
+    <fragment
+        android:id="@+id/map_container"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Botón en la capa superior, alineado en la esquina superior derecha -->
+    <ImageButton
+        android:id="@+id/FilterButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/circle"
+        android:backgroundTint="@color/color_boton"
+        android:contentDescription="Filtro"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_filter" />
+
+</FrameLayout>

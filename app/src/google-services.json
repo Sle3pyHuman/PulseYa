@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1077686548064",
+    "project_id": "examen-programacion-android",
+    "storage_bucket": "examen-programacion-android.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1077686548064:android:6638305bb7f9c017743505",
+        "android_client_info": {
+          "package_name": "com.examen.pulseya"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvivQlkqPQNq7v150goe5e33FLb-u05wQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

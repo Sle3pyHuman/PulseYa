@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_ver_eventos"
+        android:title="@string/ver_evento_guardado" />
+    <item
+        android:id="@+id/nav_filtrar"
+        android:title="@string/filtrar_eventos" />
+    <item
+        android:id="@+id/nav_publicar"
+        android:title="@string/publicar_eventos" />
+    <item
+        android:id="@+id/nav_logout"
+        android:title="@string/logout"
+        android:titleTextColor="@color/red" />
+</menu>
